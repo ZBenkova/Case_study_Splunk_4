@@ -1,223 +1,128 @@
-# 🧠 CHEAT SHEET – T1053.005 (Scheduled Tasks Detection)
+📌 MITRE ATT&CK
 
-## 📌 MITRE ATT&CK
-**T1053.005 – Scheduled Task / Job (Windows Task Scheduler)**
+T1053.005 – Scheduled Task / Job (Windows Task Scheduler)
 
-### Use Case
-- Persistence  
-- Privilege escalation  
-- Malware execution  
-- Execution automation  
+➡️ Použití
+Persistence
+Privilege escalation
+Malware execution
+Execution automation
+🔍 1. NEJDŮLEŽITĚJŠÍ LOGY
+🥇 OSQuery (nejlepší zdroj)
+scheduled_tasks
+process_events
+windows_events
+🥈 Sysmon (Event ID 1 – klíčový)
 
----
+System Event ID = 1 (Process Create)
 
-# 🔍 1. KEY LOGS TO MONITOR
+➡️ sleduj hlavně:
 
-## 🥇 OSQuery (primary source)
-- scheduled_tasks  
-- process_events  
-- windows_events  
-
-## 🥈 Sysmon (critical)
-**Event ID 1 – Process Creation**
-
-Monitor:
-- `schtasks.exe`
-- `taskeng.exe`
-- `cmd.exe`
-
-## 🥉 Task Scheduler Logs
-| Event ID | Meaning |
-|----------|--------|
-| 106 | Task created |
-| 140 | Task modified |
-| 141 | Task deleted |
-
----
-
-# ⚙️ 2. DETECTION SIGNATURES
-
-## schtasks activity
-```text
+schtasks.exe
+taskeng.exe
+cmd.exe chain
+🥉 Task Scheduler logs
+Event ID 106 → task created
+Event ID 140 → modified
+Event ID 141 → deleted
+⚙️ 2. DETEKČNÍ SIGNATURY
+🧨 schtasks activity
 schtasks.exe /create
 schtasks.exe /change
 schtasks.exe /delete
-Suspicious payload execution
+⚠️ Suspicious payloads
 
-Tasks launching:
+Task spouští:
 
 powershell.exe
 cmd.exe
 mshta.exe
 rundll32.exe
-wscript.exe
-cscript.exe
+wscript / cscript
 encoded commands (-enc)
-🚩 3. HIGH RISK INDICATORS
+🔥 3. HIGH RISK PATTERN
+🚩 Red flags
 /ru SYSTEM
 /rl HIGHEST
 /sc minute
-Fake task names (e.g. “Automatic Updates”)
-LOLBins usage (mshta, powershell)
-Execution from ProgramData
-🧬 4. TYPICAL ATTACK FLOW
+fake názvy („Automatic Updates“)
+LOLBins (mshta, powershell)
+execution z ProgramData
+🧬 4. TYPOVÝ ATTACK FLOW
 cmd.exe
    ↓
 schtasks.exe /create
    ↓
 SYSTEM execution
    ↓
-mshta.exe (payload execution)
+mshta.exe / HTA payload
    ↓
-persistence (minute-based execution)
-   ↓
-schtasks.exe /delete (cleanup)
-🧱 5. TASK CREATION ANALYSIS
-Key Indicators
-Parent process: cmd.exe
-User: Administrator / SYSTEM
-Session: non-interactive (TerminalSessionId = 0)
-Interpretation
-Scripted execution
-Service-based execution
-Attacker tooling
-🧪 6. BENIGN vs MALICIOUS
-✅ Benign activity
-Scheduled daily/weekly jobs
-Windows / AV / software updaters
-No encoded payloads
-No SYSTEM + minute execution
-🚨 Malicious activity
-SYSTEM + HIGHEST privileges
-Execution every minute
-mshta / PowerShell payloads
-Disguised task names
-Self-deleting tasks
-🌐 7. NETWORK INDICATORS
-Suspicious patterns
-\\127.0.0.1\ADMIN$
-Possible techniques
-WMI execution
-PsExec-like behavior
-Lateral movement tooling
-Sysmon Event ID 3
-mshta.exe outbound connections
-PowerShell C2 traffic
-cmd.exe download activity
-🧠 8. KEY EVENT IDS
-Event ID	Source	Meaning
-1	Sysmon	Process creation
-3	Sysmon	Network connection
-106	Task Scheduler	Task created
-140	Task Scheduler	Task modified
-141	Task Scheduler	Task deleted
-4624	Security	Logon
-4672	Security	Admin privileges
-🧾 9. SPL QUERIES
-Find schtasks execution
-index=metasploitable System.EventID=1 EventData.Image="*\\schtasks.exe"
-Suspicious task creation
-CommandLine="*/create*" OR CommandLine="*mshta*"
-Network activity check
-System.EventID=3 (mshta OR powershell OR cmd.exe)
-🧾 10. INTERVIEW ANSWER TEMPLATE
-How was the task created?
-
-The scheduled task was created programmatically via cmd.exe using schtasks.exe under an Administrator or SYSTEM account in a non-interactive session, indicating scripted or automated execution rather than manual GUI interaction.
-
-Was it benign?
-
-No. The combination of SYSTEM execution, high privileges, minute-based scheduling, and execution of mshta.exe strongly indicates malicious persistence activity.
-
-Network activity?
-
-No direct external C2 connection was observed; however, local SMB/WMI-like execution via ADMIN$ suggests possible remote execution tooling behavior.
-
-🚀 SUMMARY
-
-T1053.005 = schtasks abuse + SYSTEM execution + LOLBins + suspicious scheduling + optional WMI/SMB artifacts
-
-🚩 3. HIGH RISK INDICATORS
-/ru SYSTEM
-/rl HIGHEST
-/sc minute
-Fake task names (e.g. “Automatic Updates”)
-LOLBins usage (mshta, powershell)
-Execution from ProgramData
-🧬 4. TYPICAL ATTACK FLOW
-cmd.exe
-   ↓
-schtasks.exe /create
-   ↓
-SYSTEM execution
-   ↓
-mshta.exe (payload execution)
-   ↓
-persistence (minute-based execution)
+persistence (every minute)
    ↓
 schtasks.exe /delete (cleanup)
-🧱 5. TASK CREATION ANALYSIS
-Key Indicators
-Parent process: cmd.exe
-User: Administrator / SYSTEM
-Session: non-interactive (TerminalSessionId = 0)
-Interpretation
-Scripted execution
-Service-based execution
-Attacker tooling
+🧱 5. HOW WAS TASK CREATED?
+Klíčové znaky:
+Parent: cmd.exe
+User: Administrator nebo SYSTEM
+Non-interactive session (TerminalSessionId = 0)
+
+➡️ indikace:
+
+script execution
+service execution
+attacker tooling
 🧪 6. BENIGN vs MALICIOUS
-✅ Benign activity
-Scheduled daily/weekly jobs
-Windows / AV / software updaters
-No encoded payloads
-No SYSTEM + minute execution
-🚨 Malicious activity
-SYSTEM + HIGHEST privileges
-Execution every minute
-mshta / PowerShell payloads
-Disguised task names
-Self-deleting tasks
+❌ BENIGN
+scheduled daily/weekly jobs
+legit updaters (Adobe, Windows, AV)
+žádné mshta / encoded payloads
+žádné SYSTEM + minute interval
+🚨 MALICIOUS
+SYSTEM + HIGHEST
+execution každou minutu
+mshta / powershell payload
+disguised names („Automatic Updates“)
+self-delete task
 🌐 7. NETWORK INDICATORS
-Suspicious patterns
+⚠️ Local abuse patterns
 \\127.0.0.1\ADMIN$
-Possible techniques
+
+➡️ indikace:
+
 WMI execution
 PsExec-like behavior
-Lateral movement tooling
-Sysmon Event ID 3
-mshta.exe outbound connections
-PowerShell C2 traffic
+lateral movement tooling
+Sysmon Event ID 3:
+mshta.exe outbound connection
+powershell C2 traffic
 cmd.exe download activity
-🧠 8. KEY EVENT IDS
-Event ID	Source	Meaning
-1	Sysmon	Process creation
-3	Sysmon	Network connection
-106	Task Scheduler	Task created
-140	Task Scheduler	Task modified
-141	Task Scheduler	Task deleted
-4624	Security	Logon
-4672	Security	Admin privileges
-🧾 9. SPL QUERIES
-Find schtasks execution
+🧠 8. KEY SYSTEM EVENT IDs
+Event ID	Meaning
+1	Process creation (Sysmon)
+3	Network connection
+106	Task created
+140	Task modified
+141	Task deleted
+4624	Logon
+4672	Admin privileges
+🧾 9. TYPICAL SPL QUERIES
+Find schtasks:
 index=metasploitable System.EventID=1 EventData.Image="*\\schtasks.exe"
-Suspicious task creation
+Suspicious create:
 CommandLine="*/create*" OR CommandLine="*mshta*"
-Network activity check
+Network check:
 System.EventID=3 (mshta OR powershell OR cmd.exe)
-🧾 10. INTERVIEW ANSWER TEMPLATE
-How was the task created?
+🧾 10. FINAL INTERVIEW ANSWER TEMPLATE
 
-The scheduled task was created programmatically via cmd.exe using schtasks.exe under an Administrator or SYSTEM account in a non-interactive session, indicating scripted or automated execution rather than manual GUI interaction.
+HOW WAS TASK CREATED?
+The scheduled task was created programmatically via cmd.exe using schtasks.exe under Administrator or SYSTEM account in a non-interactive session, indicating scripted or automated execution rather than manual GUI interaction.
 
-Was it benign?
+WAS IT BENIGN?
+No. The combination of SYSTEM execution, high privilege flags, minute-based scheduling, and execution of mshta.exe strongly indicates malicious persistence rather than legitimate administrative activity.
 
-No. The combination of SYSTEM execution, high privileges, minute-based scheduling, and execution of mshta.exe strongly indicates malicious persistence activity.
+NETWORK ACTIVITY?
+No clear external C2 connection was observed; however, unusual local SMB/WMI-style execution via ADMIN$ suggests potential remote execution tooling behavior.
 
-Network activity?
-
-No direct external C2 connection was observed; however, local SMB/WMI-like execution via ADMIN$ suggests possible remote execution tooling behavior.
-
-🚀 SUMMARY
+🚀 ONE-LINE SUMMARY
 
 T1053.005 = schtasks abuse + SYSTEM execution + LOLBins + suspicious scheduling + optional WMI/SMB artifacts
----
