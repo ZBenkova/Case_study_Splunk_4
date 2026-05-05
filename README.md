@@ -139,10 +139,3 @@ T1053.005 = schtasks abuse + SYSTEM execution + LOLBins + suspicious scheduling 
 
 
 ---
-
-Jestli chceš, další krok ti můžu udělat:
-- 🔥 verzi „portfolio ready“ (pro GitHub profile)
-- 🧪 nebo Sigma rules + detection engineering verzi
-- 🧠 nebo z toho udělat Notion cheat sheet
-
-Stačí říct.
